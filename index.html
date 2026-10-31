@@ -1,0 +1,777 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HUB Games</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10121c;color:white;font-family:Arial,sans-serif}
+button{border:0;border-radius:10px;padding:13px;background:#7955ed;color:white;font-weight:bold;cursor:pointer}
+input,textarea,select{width:100%;padding:13px;background:#10121c;color:white;border:1px solid #41445a;border-radius:9px;margin:7px 0 14px}
+header{background:#191b29;padding:16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-size:24px;font-weight:bold;color:#a58aff}
+.wallet{background:#302747;padding:10px;border-radius:10px}
+nav{display:flex;gap:7px;overflow-x:auto;padding:12px;background:#191b29}
+nav button{white-space:nowrap;background:#292c3d}
+main{padding:16px;max-width:1100px;margin:auto}
+.hidden{display:none!important}
+.panel{background:#1b1e2c;padding:18px;border-radius:15px;margin:15px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.game{background:#202333;border-radius:14px;overflow:hidden}
+.cover{height:125px;background:linear-gradient(135deg,#4934a5,#171b36);display:grid;place-items:center;font-size:48px}
+.gameinfo{padding:13px}
+.gameinfo p,.small{color:#b8bac8;font-size:13px}
+.primary{width:100%;margin-top:5px}
+.secondary{background:#35394d}
+.danger{background:#a43c50}
+.tag{display:inline-block;background:#34304d;padding:5px 8px;border-radius:7px;font-size:11px;margin:3px}
+.center{text-align:center}
+.owner-logo{font-size:38px;color:#a58aff;font-weight:900;margin:15px}
+.owner-box{max-width:430px;margin:50px auto;text-align:center}
+.owner-box .panel{padding:27px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#292c40;padding:14px 20px;border-radius:12px;display:none;z-index:30;max-width:90%;text-align:center}
+footer{text-align:center;padding:25px;color:#85899b}
+iframe{width:100%;height:70vh;border:0;border-radius:12px;background:#080910}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">HUB GAMES</div>
+ <div class="wallet">🪙 <span id="balance">0</span> HUB</div>
+</header>
+
+<nav>
+ <button onclick="showPage('home')">🏠 Início</button>
+ <button onclick="showPage('games')">🎮 Jogos</button>
+ <button onclick="showPage('publish')">➕ Publicar</button>
+ <button onclick="showPage('wallet')">🪙 HUB</button>
+ <button onclick="showPage('redeem')">🎁 Códigos</button>
+ <button onclick="showPage('account')">👤 Conta</button>
+ <button onclick="showPage('ownerLogin')">🔒 Dono</button>
+</nav>
+
+<main>
+
+<!-- TELA INICIAL -->
+<section id="home">
+ <div class="panel">
+  <h1>Bem-vindo ao HUB Games!</h1>
+  <p>Descubra jogos incríveis criados por jogadores.</p>
+  <button onclick="showPage('games')">EXPLORAR JOGOS</button>
+ </div>
+ <h2>🔥 Jogos disponíveis</h2>
+ <div class="grid" id="featured"></div>
+</section>
+
+<!-- CATÁLOGO -->
+<section id="games" class="hidden">
+ <h2>🎮 Todos os jogos</h2>
+ <input id="search" placeholder="Pesquisar jogos..." oninput="renderGames()">
+ <div class="grid" id="gameList"></div>
+</section>
+
+<!-- PUBLICAÇÃO -->
+<section id="publish" class="hidden">
+ <h2>➕ Publicar jogo</h2>
+ <div class="panel">
+  <label>Nome do jogo</label>
+  <input id="gameName" placeholder="Nome">
+
+  <label>Link do jogo ou aplicativo</label>
+  <input id="gameURL" placeholder="https://exemplo.com/jogo">
+
+  <label>Descrição</label>
+  <textarea id="gameDesc"></textarea>
+
+  <label>Instruções</label>
+  <textarea id="gameInstructions"></textarea>
+
+  <label>Classificação indicativa</label>
+  <select id="gameAge">
+   <option>Livre</option><option>10+</option>
+   <option>12+</option><option>14+</option>
+   <option>16+</option><option>18+</option>
+  </select>
+
+  <label>É para crianças?</label>
+  <select id="gameKids">
+   <option>Sim</option><option>Não</option>
+  </select>
+
+  <label>Preço em HUB (0 = grátis)</label>
+  <input id="gamePrice" type="number" min="0" value="0">
+
+  <button class="primary" onclick="publishGame()">PUBLICAR JOGO</button>
+ </div>
+</section>
+
+<!-- CARTEIRA -->
+<section id="wallet" class="hidden">
+ <h2>🪙 Carteira HUB</h2>
+ <div class="panel">
+  <h1><span id="walletBalance">0</span> HUB</h1>
+  <button onclick="showPage('redeem')">RESGATAR CÓDIGO</button>
+ </div>
+ <div class="panel">
+  <h3>Comprar HUB</h3>
+  <p>Compras com dinheiro real ainda não estão habilitadas nesta demonstração.</p>
+ </div>
+</section>
+
+<!-- RESGATAR -->
+<section id="redeem" class="hidden">
+ <h2>🎁 Resgatar código</h2>
+ <div class="panel">
+  <p>Digite um código criado pelo dono.</p>
+  <input id="redeemCode" placeholder="Digite seu código">
+  <button class="primary" onclick="redeem()">RESGATAR HUB</button>
+ </div>
+</section>
+
+<!-- CONTA -->
+<section id="account" class="hidden">
+ <h2>👤 Minha conta</h2>
+ <div class="panel">
+  <div id="loggedOut">
+   <label>Nome de usuário</label>
+   <input id="username" placeholder="Seu nome">
+
+   <label>Data de nascimento</label>
+   <input id="birth" type="date">
+
+   <label>Senha de demonstração</label>
+   <input id="password" type="password">
+
+   <label>Confirmar senha</label>
+   <input id="password2" type="password">
+
+   <button class="primary" onclick="register()">CRIAR CONTA</button>
+   <p class="small">Demonstração local. Não utilize uma senha verdadeira.</p>
+  </div>
+
+  <div id="loggedIn" class="hidden">
+   <h3>Conta conectada</h3>
+   <p>Usuário: <b id="profileName"></b></p>
+   <p>Moedas: <b id="profileBalance"></b> HUB</p>
+   <button class="danger" onclick="logout()">SAIR DA CONTA</button>
+  </div>
+ </div>
+</section>
+
+<!-- TELA 1: SENHA DO DONO -->
+<section id="ownerLogin" class="hidden">
+ <div class="owner-box">
+  <div class="owner-logo">HUB GAMES</div>
+  <div class="panel">
+   <h2>🔒 Área do proprietário</h2>
+   <p>Somente o dono pode acessar o painel administrativo.</p>
+
+   <label>Senha do proprietário</label>
+   <input id="ownerPassword" type="password"
+    placeholder="Digite sua senha"
+    onkeydown="if(event.key==='Enter')enterOwner()">
+
+   <button class="primary" onclick="enterOwner()">ENTRAR NO PAINEL</button>
+
+   <p class="small">Acesso administrativo.</p>
+   <button class="secondary" onclick="showPage('home')">VOLTAR</button>
+  </div>
+ </div>
+</section>
+
+<!-- TELA 2: PAINEL ADMINISTRATIVO -->
+<section id="adminPanel" class="hidden">
+
+ <div class="panel">
+  <h1>👑 Painel do proprietário</h1>
+  <p>Bem-vindo, administrador do HUB Games!</p>
+  <button class="danger" onclick="ownerLogout()">SAIR DO PAINEL</button>
+ </div>
+
+ <div class="panel">
+  <h2>🎁 Criar códigos HUB</h2>
+
+  <label>Nome do código</label>
+  <input id="newCode" placeholder="Exemplo: HUB100">
+
+  <label>Quantidade de HUB</label>
+  <input id="newAmount" type="number" min="1" value="100">
+
+  <label>Quantidade de resgates</label>
+  <input id="newUses" type="number" min="1" value="10">
+
+  <button class="primary" onclick="createCode()">CRIAR CÓDIGO</button>
+ </div>
+
+ <div class="panel">
+  <h2>📋 Gerenciar códigos</h2>
+  <div id="codesList"></div>
+ </div>
+
+ <div class="panel">
+  <h2>🎮 Gerenciar jogos</h2>
+  <div id="adminGames"></div>
+ </div>
+
+</section>
+
+<!-- TELA PARA ABRIR JOGOS -->
+<section id="player" class="hidden">
+ <h2 id="playingTitle">Jogo</h2>
+ <div class="panel">
+  <button class="secondary" onclick="showPage('games')">← VOLTAR AOS JOGOS</button>
+  <button onclick="openExternal()">ABRIR EM OUTRA ABA</button>
+  <p class="small" id="playingInstructions"></p>
+ </div>
+ <iframe id="gameFrame" allowfullscreen></iframe>
+ <p class="small">Alguns sites bloqueiam a abertura dentro de outros aplicativos. Nesse caso, use o botão de abrir em outra aba.</p>
+</section>
+
+<footer>HUB GAMES © 2026</footer>
+</main>
+
+<div id="toast"></div>
+
+<script>
+
+// =======================================
+// CONFIGURAÇÃO DO DONO
+// =======================================
+
+// SUA SENHA ADMINISTRATIVA:
+const OWNER_PASSWORD = "1234";
+
+// =======================================
+// DADOS
+// =======================================
+
+let games=JSON.parse(localStorage.getItem('hub_games')||'null')||[
+ {id:1,name:'Aventura Radical',url:'https://example.com',desc:'Uma aventura incrível!',instructions:'Explore o jogo.',age:'Livre',kids:'Sim',price:0},
+ {id:2,name:'Corrida de Carros',url:'https://example.com',desc:'Uma corrida emocionante!',instructions:'Acelere e vença.',age:'Livre',kids:'Sim',price:0}
+];
+
+let codes=JSON.parse(localStorage.getItem('hub_codes')||'{}');
+let used=JSON.parse(localStorage.getItem('hub_used')||'{}');
+let balance=Number(localStorage.getItem('hub_balance')||0);
+let purchased=JSON.parse(localStorage.getItem('hub_purchased')||'{}');
+let user=localStorage.getItem('hub_user')||null;
+
+let ownerAuthenticated=false;
+let currentGame=null;
+
+const $=id=>document.getElementById(id);
+
+// =======================================
+// SALVAR DADOS
+// =======================================
+
+function save(){
+ localStorage.setItem('hub_games',JSON.stringify(games));
+ localStorage.setItem('hub_codes',JSON.stringify(codes));
+ localStorage.setItem('hub_used',JSON.stringify(used));
+ localStorage.setItem('hub_balance',balance);
+ localStorage.setItem('hub_purchased',JSON.stringify(purchased));
+ localStorage.setItem('hub_user',user||'');
+}
+
+function toast(msg){
+ $('toast').textContent=msg;
+ $('toast').style.display='block';
+ setTimeout(()=>$('toast').style.display='none',2800);
+}
+
+// =======================================
+// NAVEGAÇÃO ENTRE TELAS
+// =======================================
+
+function showPage(id){
+ document.querySelectorAll('main section').forEach(s=>{
+  s.classList.add('hidden');
+ });
+
+ $(id).classList.remove('hidden');
+
+ // Sempre fecha a sessão administrativa ao sair
+ if(id!=='adminPanel'){
+  ownerAuthenticated=false;
+ }
+
+ if(id==='games')renderGames();
+ if(id==='home')renderFeatured();
+ if(id==='wallet')updateBalance();
+ if(id==='account')updateAccount();
+
+ if(id==='ownerLogin'){
+  $('ownerPassword').value='';
+  $('adminPanel').classList.add('hidden');
+ }
+}
+
+// =======================================
+// CARTEIRA
+// =======================================
+
+function updateBalance(){
+ $('balance').textContent=balance;
+ $('walletBalance').textContent=balance;
+ $('profileBalance').textContent=balance;
+}
+
+// =======================================
+// JOGOS
+// =======================================
+
+function validURL(value){
+ try{
+  const u=new URL(value);
+  return u.protocol==='https:'||u.protocol==='http:';
+ }catch(e){return false}
+}
+
+function gameCard(g){
+ const card=document.createElement('div');
+ card.className='game';
+
+ const cover=document.createElement('div');
+ cover.className='cover';
+ cover.textContent='🎮';
+
+ const info=document.createElement('div');
+ info.className='gameinfo';
+
+ const title=document.createElement('h3');
+ title.textContent=g.name;
+
+ const desc=document.createElement('p');
+ desc.textContent=g.desc;
+
+ const price=document.createElement('p');
+ price.className='price';
+ price.textContent=g.price===0?'GRÁTIS':'🪙 '+g.price+' HUB';
+
+ const age=document.createElement('span');
+ age.className='tag';
+ age.textContent=g.age;
+
+ const kids=document.createElement('span');
+ kids.className='tag';
+ kids.textContent='Crianças: '+g.kids;
+
+ const instructions=document.createElement('p');
+ instructions.textContent='Instruções: '+g.instructions;
+
+ const btn=document.createElement('button');
+ btn.className='primary';
+ btn.textContent=g.price===0?'JOGAR':
+  (purchased[user+'_'+g.id]?'JOGAR':'COMPRAR / JOGAR');
+ btn.onclick=()=>playGame(g.id);
+
+ info.append(title,desc,price,age,kids,instructions,btn);
+ card.append(cover,info);
+ return card;
+}
+
+function renderGames(){
+ $('gameList').innerHTML='';
+ const term=$('search').value.toLowerCase();
+
+ games.filter(g=>g.name.toLowerCase().includes(term))
+ .forEach(g=>$('gameList').appendChild(gameCard(g)));
+}
+
+function renderFeatured(){
+ $('featured').innerHTML='';
+ games.slice(0,4).forEach(g=>$('featured').appendChild(gameCard(g)));
+}
+
+function publishGame(){
+ if(!user){
+  toast('Faça seu cadastro primeiro!');
+  showPage('account');
+  return;
+ }
+
+ const name=$('gameName').value.trim();
+ const url=$('gameURL').value.trim();
+ const desc=$('gameDesc').value.trim();
+ const instructions=$('gameInstructions').value.trim();
+ const price=Number($('gamePrice').value);
+
+ if(!name||!url||!desc||!instructions){
+  toast('Preencha todos os campos!');
+  return;
+ }
+
+ if(!validURL(url)){
+  toast('Digite um link válido!');
+  return;
+ }
+
+ if(!Number.isSafeInteger(price)||price<0){
+  toast('Preço inválido!');
+  return;
+ }
+
+ games.push({
+  id:Date.now(),name,url,desc,instructions,
+  age:$('gameAge').value,
+  kids:$('gameKids').value,
+  price
+ });
+
+ save();
+ renderGames();
+ renderFeatured();
+
+ $('gameName').value='';
+ $('gameURL').value='';
+ $('gameDesc').value='';
+ $('gameInstructions').value='';
+ $('gamePrice').value=0;
+
+ toast('JOGO PUBLICADO!');
+}
+
+// =======================================
+// EXECUTAR JOGOS
+// =======================================
+
+function playGame(id){
+ const g=games.find(x=>x.id===id);
+ if(!g)return;
+
+ if(g.price>0){
+  if(!user){
+   toast('Faça seu cadastro primeiro!');
+   showPage('account');
+   return;
+  }
+
+  const key=user+'_'+g.id;
+
+  if(!purchased[key]){
+   if(!confirm('Comprar '+g.name+' por '+g.price+' HUB?'))return;
+
+   if(balance<g.price){
+    toast('Você não tem HUB suficiente!');
+    showPage('wallet');
+    return;
+   }
+
+   balance-=g.price;
+   purchased[key]=true;
+   save();
+   updateBalance();
+  }
+ }
+
+ if(!validURL(g.url)){
+  toast('Link do jogo inválido!');
+  return;
+ }
+
+ currentGame=g;
+
+ $('playingTitle').textContent=g.name;
+ $('playingInstructions').textContent='Instruções: '+g.instructions;
+
+ $('gameFrame').src=g.url;
+
+ showPage('player');
+}
+
+function openExternal(){
+ if(currentGame && validURL(currentGame.url)){
+  window.open(currentGame.url,'_blank','noopener,noreferrer');
+ }
+}
+
+// =======================================
+// CADASTRO
+// =======================================
+
+function register(){
+ const name=$('username').value.trim();
+ const birth=$('birth').value;
+ const pass=$('password').value;
+ const pass2=$('password2').value;
+
+ if(!name||!birth||!pass){
+  toast('Preencha todos os campos!');
+  return;
+ }
+
+ if(pass.length<6){
+  toast('A senha deve ter pelo menos 6 caracteres.');
+  return;
+ }
+
+ if(pass!==pass2){
+  toast('As senhas não coincidem!');
+  return;
+ }
+
+ const date=new Date(birth+'T00:00:00');
+
+ if(isNaN(date.getTime())||date>new Date()){
+  toast('Data de nascimento inválida!');
+  return;
+ }
+
+ // Cadastro demonstrativo que aceita qualquer idade.
+ // Uma versão pública precisa de controles de proteção infantil.
+
+ user=name;
+ save();
+ updateAccount();
+ toast('CONTA CRIADA COM SUCESSO!');
+}
+
+function updateAccount(){
+ if(user){
+  $('loggedOut').classList.add('hidden');
+  $('loggedIn').classList.remove('hidden');
+  $('profileName').textContent=user;
+ }else{
+  $('loggedOut').classList.remove('hidden');
+  $('loggedIn').classList.add('hidden');
+ }
+ updateBalance();
+}
+
+function logout(){
+ user=null;
+ save();
+ updateAccount();
+ toast('Você saiu da conta.');
+}
+
+// =======================================
+// RESGATAR CÓDIGOS
+// =======================================
+
+function redeem(){
+ if(!user){
+  toast('Faça seu cadastro primeiro!');
+  showPage('account');
+  return;
+ }
+
+ const code=$('redeemCode').value.trim().toUpperCase();
+
+ if(!code){
+  toast('Digite seu código!');
+  return;
+ }
+
+ const found=Object.keys(codes).find(
+  key=>key.toUpperCase()===code
+ );
+
+ if(!found){
+  toast('Código inválido!');
+  return;
+ }
+
+ if(!used[found])used[found]=[];
+
+ if(used[found].includes(user)){
+  toast('Você já resgatou este código!');
+  return;
+ }
+
+ if(codes[found].uses<=0){
+  toast('Este código acabou!');
+  return;
+ }
+
+ balance+=codes[found].amount;
+ codes[found].uses--;
+ used[found].push(user);
+
+ save();
+ updateBalance();
+
+ $('redeemCode').value='';
+ toast('VOCÊ RECEBEU '+codes[found].amount+' HUB!');
+}
+
+// =======================================
+// TELA 1: LOGIN DO DONO
+// =======================================
+
+function enterOwner(){
+ const password=$('ownerPassword').value;
+
+ if(password!==OWNER_PASSWORD){
+  toast('SENHA INCORRETA!');
+  $('ownerPassword').value='';
+  return;
+ }
+
+ ownerAuthenticated=true;
+
+ // Esconde completamente a tela de senha
+ // e abre somente o painel administrativo.
+ $('ownerLogin').classList.add('hidden');
+ $('adminPanel').classList.remove('hidden');
+
+ renderAdmin();
+
+ toast('BEM-VINDO AO PAINEL DO DONO!');
+}
+
+// =======================================
+// SAIR DO PAINEL
+// =======================================
+
+function ownerLogout(){
+ ownerAuthenticated=false;
+
+ $('adminPanel').classList.add('hidden');
+ $('ownerLogin').classList.remove('hidden');
+ $('ownerPassword').value='';
+
+ toast('PAINEL FECHADO!');
+}
+
+// =======================================
+// CRIAR CÓDIGOS - SOMENTE DONO
+// =======================================
+
+function createCode(){
+ if(!ownerAuthenticated){
+  toast('VOCÊ NÃO TEM AUTORIZAÇÃO!');
+  showPage('ownerLogin');
+  return;
+ }
+
+ const code=$('newCode').value.trim().toUpperCase();
+ const amount=Number($('newAmount').value);
+ const uses=Number($('newUses').value);
+
+ if(!/^[A-Z0-9-]{3,30}$/.test(code)){
+  toast('Código inválido. Use letras e números.');
+  return;
+ }
+
+ if(codes[code]){
+  toast('Este código já existe!');
+  return;
+ }
+
+ if(!Number.isSafeInteger(amount)||amount<1||
+    !Number.isSafeInteger(uses)||uses<1){
+  toast('Confira as quantidades!');
+  return;
+ }
+
+ codes[code]={
+  amount:amount,
+  uses:uses
+ };
+
+ used[code]=[];
+
+ save();
+
+ $('newCode').value='';
+ $('newAmount').value=100;
+ $('newUses').value=10;
+
+ renderAdmin();
+
+ toast('CÓDIGO CRIADO COM SUCESSO!');
+}
+
+// =======================================
+// ADMINISTRAÇÃO DOS CÓDIGOS E JOGOS
+// =======================================
+
+function renderAdmin(){
+ if(!ownerAuthenticated)return;
+
+ $('codesList').innerHTML='';
+
+ Object.entries(codes).forEach(([code,data])=>{
+  const div=document.createElement('div');
+  div.className='panel';
+
+  const p=document.createElement('p');
+  p.textContent=code+' | '+data.amount+' HUB | '+data.uses+' usos restantes';
+
+  const copy=document.createElement('button');
+  copy.textContent='COPIAR CÓDIGO';
+  copy.onclick=()=>{
+   if(navigator.clipboard){
+    navigator.clipboard.writeText(code)
+    .then(()=>toast('CÓDIGO COPIADO!'))
+    .catch(()=>toast('Código: '+code));
+   }else{
+    toast('Código: '+code);
+   }
+  };
+
+  const del=document.createElement('button');
+  del.className='danger';
+  del.textContent='EXCLUIR CÓDIGO';
+  del.onclick=()=>{
+   if(!ownerAuthenticated)return;
+   if(confirm('Excluir '+code+'?')){
+    delete codes[code];
+    delete used[code];
+    save();
+    renderAdmin();
+    toast('CÓDIGO EXCLUÍDO!');
+   }
+  };
+
+  div.append(p,copy,del);
+  $('codesList').appendChild(div);
+ });
+
+ $('adminGames').innerHTML='';
+
+ games.forEach(g=>{
+  const div=document.createElement('div');
+  div.className='panel';
+
+  const p=document.createElement('p');
+  p.textContent=g.name+' | '+g.price+' HUB';
+
+  const del=document.createElement('button');
+  del.className='danger';
+  del.textContent='REMOVER JOGO';
+
+  del.onclick=()=>{
+   if(!ownerAuthenticated)return;
+   if(confirm('Remover '+g.name+'?')){
+    games=games.filter(x=>x.id!==g.id);
+    save();
+    renderAdmin();
+    renderGames();
+    renderFeatured();
+    toast('JOGO REMOVIDO!');
+   }
+  };
+
+  div.append(p,del);
+  $('adminGames').appendChild(div);
+ });
+}
+
+// =======================================
+// INICIALIZAÇÃO
+// =======================================
+
+updateBalance();
+updateAccount();
+renderGames();
+renderFeatured();
+
+</script>
+</body>
+</html>
